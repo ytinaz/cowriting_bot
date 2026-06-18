@@ -69,11 +69,9 @@ async def finish(ctx):
 
                 await ctx.send(f'exported to file - please double check')
 
-
-                #TODO have chapter name and do stuff w it now..
-                # pull out to a file
-                # parse for formatting (later priority)
-                # upload to gdrive?
+                # pull out to a file (done)
+                # parse for formatting (later priority) (TODO)
+                # upload to gdrive? (TODO)
             else:
                 message_url = discord.MessageReference(message_id=message.id, channel_id=ctx.channel.id).jump_url
                 await ctx.send(f'Most recent !start is invalid. Please check the most likely chapter start {message_url} and rectify before running again.')
