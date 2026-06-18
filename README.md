@@ -3,6 +3,7 @@ Should probably make a proper docker container but im lazy lol
 dependencies:
 pip install discord.py
 pip install python-dotenv
+ // maybe later pip install python-docx 
 
 will make this neater. probably.
 
