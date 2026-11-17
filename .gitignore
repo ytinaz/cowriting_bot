@@ -1,5 +1,5 @@
 #don't upload your .env
 .env
 
-temporaryA.txt
-temporaryB.txt
+exports/*
+.DS_Store

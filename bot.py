@@ -5,6 +5,8 @@ import random
 from dotenv import load_dotenv
 from discord.ext import commands
 from docx import Document
+from datetime import datetime
+from pathlib import Path
 
 load_dotenv()
 
@@ -29,9 +31,15 @@ async def start(ctx):
         await ctx.send(f'Start of **{ctx.channel}: {chapter_name}** acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*')
     else:
         await ctx.send(f'Usage: !start "chapter name". Please try again.') 
-    
+
 @client.command()
-async def finish(ctx):
+async def helpme(ctx):
+    await ctx.send(f'To use me, please do the following: \nMark your chapter beginnings with \'!start\' so that I know where to start and end chapters. \nTo export the latest chapter, use !exportlast.')
+
+
+@client.command()
+async def exportlast(ctx):
+    success = False
     async for message in ctx.channel.history():
         message_text = message.content
         if message_text.startswith('!start'): #look for the most recent "!start command"
@@ -50,24 +58,47 @@ async def finish(ctx):
                 
                 if not message.author.bot: #ignore bot messages.
                     chapter_contents.append(message_text + '\n')
-            
-            #TODO: handle no !start found.
-            #TODO: neaten error handling/messages
                 
-            chapter_contents = chapter_contents[1::] #remove !finish message
+            chapter_contents = chapter_contents[1::] #remove !exportlast message
 
-            print(chapter_contents)
-            f = open("temporaryA.txt", "w")
-            f.writelines(chapter_contents[::-1])
+            try:
+                os.mkdir("exports")
+            except PermissionError:
+                 print("Permission denied.")
+                 await ctx.send(f'Permission denied - cannot create directory for output')
+            except FileNotFoundError:
+                print("The parent directory does not exist.")
+                await ctx.send(f'Something went wrong :(')
+            except FileExistsError:
+                print("The directory already exists, ignoring.")
+            except OSError as error:
+                print("Directory creation failed:", error)
+                await ctx.send(f'Could not create directory for output - {error}')
 
-            await ctx.send(f'Exported to file - please double check')
+            filename = f'exports/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'
 
+            try:
+                f = open(filename, "w")
+                f.writelines(chapter_contents[::-1])
+                f.close()
+            except PermissionError:
+                 print("Permission denied.")
+                 await ctx.send(f'Permission denied - cannot create/write/close file, please manually check {os.getcwd()}/{filename}.')
+            except FileNotFoundError:
+                print("Can't find the file.")
+            except OSError as error:
+                print("File creation failed:", error)
+                await ctx.send(f'File creation failed - {error}')
+            except FileExistsError:
+                print("The specified file already exists.")
+
+            await ctx.send(f'Exported to {os.getcwd()}/{filename}. Please double check everything is correct.')
+            success = True
             break
+    if not success:
+        await ctx.send(f'Failed to find most recent !start in channel. Please ensure your chapters are marked correctly.')
 
-
-        #TODO: export ALL using !start as breakpoints/delineate
-
-
+#TODO: export ALL using !start as breakpoints/delineate
 
 client.run(token)
 
