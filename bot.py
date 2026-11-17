@@ -22,23 +22,16 @@ async def on_ready():
 
 @client.command()
 async def start(ctx):
-    #print(f"message is {ctx.message.content}")
-    message_text = ctx.message.content
-    pattern = "^!start \"{1}[^\"]*\"{1}"
-    if re.search(pattern, message_text):  #verify command is correct using regex.
-        chapter_name = message_text.split("\"")[1]
-        #print(f"start of {ctx.channel} and chapter is {chapter_name}")
-        await ctx.send(f'Start of **{ctx.channel}: {chapter_name}** acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*')
-    else:
-        await ctx.send(f'Usage: !start "chapter name". Please try again.') 
+    await ctx.send(f'Start of chapter acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*') 
+    
 
 @client.command()
 async def helpme(ctx):
-    await ctx.send(f'To use me, please do the following: \nMark your chapter beginnings with \'!start\' so that I know where to start and end chapters. \nTo export the latest chapter, use !exportlast.')
+    await ctx.send(f'To use me, please do the following: \nMark your chapter beginnings with \'!start\' so that I know where to start and end chapters. \nTo export the latest chapter, use !export_last.')
 
 
 @client.command()
-async def exportlast(ctx):
+async def export_last(ctx):
     success = False
     async for message in ctx.channel.history():
         message_text = message.content
