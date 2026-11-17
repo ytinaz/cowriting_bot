@@ -1,3 +1,4 @@
+import shutil
 import discord
 import os
 import re
@@ -23,13 +24,16 @@ async def on_ready():
 @client.command()
 async def start(ctx):
     await ctx.send(f'Start of chapter acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*') 
-    
 
 @client.command()
 async def helpme(ctx):
     await ctx.send(f'To use me, please do the following: \nMark your chapter beginnings with \'!start\' so that I know where to start and end chapters. \nTo export the latest chapter, use !export_last.')
 
-
+#Export previous chapters in the current channel.
+#Function takes in messages backwards until it hits '!start', and makes note of the message id.
+#The user is informed about the !start marker location so they may check functionality.
+#The messages are then copied backwards until the !start message, and then copied into a file
+#Assumes sufficient memory is present on the device to run to completion.
 @client.command()
 async def export_last(ctx):
     success = False
@@ -53,35 +57,14 @@ async def export_last(ctx):
                     chapter_contents.append(message_text + '\n')
 
             try:
-                os.mkdir("exports")
-            except PermissionError:
-                 print("Permission denied.")
-                 await ctx.send(f'Permission denied - cannot create directory for output')
-            except FileNotFoundError:
-                print("The parent directory does not exist.")
-                await ctx.send(f'Something went wrong :(')
-            except FileExistsError:
-                print("The directory already exists, ignoring.")
-            except OSError as error:
-                print("Directory creation failed:", error)
-                await ctx.send(f'Could not create directory for output - {error}')
-
+                await make_exports_directory(ctx)
+            except:
+                await ctx.send("Terminating due to errors")
+        
             filename = f'exports/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'
 
-            try:
-                f = open(filename, "w")
+            with open(filename, "w") as f:
                 f.writelines(chapter_contents[::-1])
-                f.close()
-            except PermissionError:
-                 print("Permission denied.")
-                 await ctx.send(f'Permission denied - cannot create/write/close file, please manually check {os.getcwd()}/{filename}.')
-            except FileNotFoundError:
-                print("Can't find the file.")
-            except OSError as error:
-                print("File creation failed:", error)
-                await ctx.send(f'File creation failed - {error}')
-            except FileExistsError:
-                print("The specified file already exists.")
 
             await ctx.send(f'Exported to {os.getcwd()}/{filename}. Please double check everything is correct.')
             success = True
@@ -89,7 +72,11 @@ async def export_last(ctx):
     if not success:
         await ctx.send(f'Failed to find most recent !start in channel. Please ensure your chapters are marked correctly.')
 
-#TODO: export ALL using !start as breakpoints/delineate
+#Export all chapters in the current channel.
+#Chapters are exported in order, delineated on '!start'
+#Function takes in messages backwards into a list, splitting by message and then whenever it encounters the text '!start'.
+#The list is then traversed backwards, with each chapter written to a file.
+#Assumes sufficient memory is present on the device to run to completion.
 @client.command()
 async def export_all(ctx):
     chapters = []
@@ -101,10 +88,12 @@ async def export_all(ctx):
 
         #if the message is marked as the start of a chapter, the previous chapter is finished parsing.
         if message_text.startswith('!start'): 
-            #remove !start + whitespace and add to chapter_contents
+            #remove !start + whitespace and add to chapter_contents, as long as it's not empty.
             start_removed = message_text.replace("!start", "")
             start_removed = start_removed.lstrip()
-            chapter_contents.append(start_removed + '\n')
+            if len(start_removed) != 0:
+                chapter_contents.append(start_removed + '\n')
+            
 
             #add full chapter contents into chapters
             chapters.append(chapter_contents)
@@ -114,57 +103,59 @@ async def export_all(ctx):
         elif not message.author.bot: #otherwise we want to continue reading, ignoring bot messages.
             if not message_text.startswith('!export_last') and not message_text.startswith('!export_all'): #Make sure to ignore export commands
                 chapter_contents.append(message_text + '\n') 
-     
-    #directory_name = "exports/" + {ctx.channel.name} + "_chapters"
     
+    try:
+        await make_exports_directory(ctx)
+    except:
+        await ctx.send("Terminating due to errors")
+
+    #Make a directory inside exports directory to hold all exports from this command.
+    try:
+        os.mkdir(f'exports/{ctx.channel}_chapters')
+    except PermissionError:
+        print("Permission denied.")
+        await ctx.send(f'Permission denied - cannot create directory for output. Terminating operation.')
+    except FileNotFoundError:
+        print("The parent directory does not exist.")
+        await ctx.send(f'Something went wrong :(.  Terminating operation.')
+    except FileExistsError:
+        print("The directory already exists, ignoring.")
+    except OSError as error:
+        print("Directory creation failed:", error)
+        await ctx.send(f'Could not create directory for output - {error}.  Terminating operation.')
+
+    #Write each chapter contents to an individual file
+    try:
+        for chapter in chapters[::-1]:
+            filename = f'exports/{ctx.channel}_chapters/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'         
+            with open(filename, "w") as f:
+                f.writelines(chapter[::-1])
+    except Exception as error:
+        await ctx.send(f'Ran into an error while writing files - {error}. Rolling back...')
+        try:
+            shutil.rmtree(f'exports/{ctx.channel}_chapters')
+        except Exception as error:
+            await ctx.send(f'Rollback failed. Please check {os.getcwd()}/exports/{ctx.channel}_chapters/ for manual cleanup of files.')
+    
+    await ctx.send(f'Successfully exported all chapters to {os.getcwd()}/exports/{ctx.channel}_chapters/ in order. Please double check everything is correct.')
+    
+#Make an exports/ directory in the CWD if one doesn't exist.
+async def make_exports_directory(ctx):
     try:
         os.mkdir("exports")
     except PermissionError:
         print("Permission denied.")
         await ctx.send(f'Permission denied - cannot create directory for output')
+        raise PermissionError
     except FileNotFoundError:
         print("The parent directory does not exist.")
         await ctx.send(f'Something went wrong :(')
+        raise FileNotFoundError
     except FileExistsError:
         print("The directory already exists, ignoring.")
     except OSError as error:
         print("Directory creation failed:", error)
         await ctx.send(f'Could not create directory for output - {error}')
-
-    try:
-        os.mkdir(f'exports/{ctx.channel}_chapters')
-    except PermissionError:
-        print("Permission denied.")
-        await ctx.send(f'Permission denied - cannot create directory for output')
-    except FileNotFoundError:
-        print("The parent directory does not exist.")
-        await ctx.send(f'Something went wrong :(')
-    except FileExistsError:
-        print("The directory already exists, ignoring.")
-    except OSError as error:
-        print("Directory creation failed:", error)
-        await ctx.send(f'Could not create directory for output - {error}')
-        
-
-    for chapter in chapters[::-1]:
-        filename = f'exports/{ctx.channel}_chapters/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'
-        try:
-            f = open(filename, "w")
-            f.writelines(chapter[::-1])
-            f.close()
-        except PermissionError:
-            print("Permission denied.")
-            await ctx.send(f'Permission denied - cannot create/write/close file, please manually check {os.getcwd()}/{filename}.')
-        except FileNotFoundError:
-            print("Can't find the file.")
-        except OSError as error:
-            print("File creation failed:", error)
-            await ctx.send(f'File creation failed - {error}')
-        except FileExistsError:
-            print("The specified file already exists.")
-    
+        raise OSError
 
 client.run(token)
-
-
-
