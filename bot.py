@@ -49,10 +49,8 @@ async def export_last(ctx):
                     chapter_contents.append(start_removed + '\n')
                     break
                 
-                if not message.author.bot: #ignore bot messages.
+                if not message.author.bot and not message_text.startswith('!export_last') and not message_text.startswith('!export_all'): #ignore bot messages + export commands
                     chapter_contents.append(message_text + '\n')
-                
-            chapter_contents = chapter_contents[1::] #remove !exportlast message
 
             try:
                 os.mkdir("exports")
@@ -92,6 +90,79 @@ async def export_last(ctx):
         await ctx.send(f'Failed to find most recent !start in channel. Please ensure your chapters are marked correctly.')
 
 #TODO: export ALL using !start as breakpoints/delineate
+@client.command()
+async def export_all(ctx):
+    chapters = []
+    chapter_contents = []
+
+    #begin parsing all messages in history from most recent
+    async for message in ctx.channel.history():
+        message_text = message.content
+
+        #if the message is marked as the start of a chapter, the previous chapter is finished parsing.
+        if message_text.startswith('!start'): 
+            #remove !start + whitespace and add to chapter_contents
+            start_removed = message_text.replace("!start", "")
+            start_removed = start_removed.lstrip()
+            chapter_contents.append(start_removed + '\n')
+
+            #add full chapter contents into chapters
+            chapters.append(chapter_contents)
+            
+            #empty chapter_contents
+            chapter_contents = []
+        elif not message.author.bot: #otherwise we want to continue reading, ignoring bot messages.
+            if not message_text.startswith('!export_last') and not message_text.startswith('!export_all'): #Make sure to ignore export commands
+                chapter_contents.append(message_text + '\n') 
+     
+    #directory_name = "exports/" + {ctx.channel.name} + "_chapters"
+    
+    try:
+        os.mkdir("exports")
+    except PermissionError:
+        print("Permission denied.")
+        await ctx.send(f'Permission denied - cannot create directory for output')
+    except FileNotFoundError:
+        print("The parent directory does not exist.")
+        await ctx.send(f'Something went wrong :(')
+    except FileExistsError:
+        print("The directory already exists, ignoring.")
+    except OSError as error:
+        print("Directory creation failed:", error)
+        await ctx.send(f'Could not create directory for output - {error}')
+
+    try:
+        os.mkdir(f'exports/{ctx.channel}_chapters')
+    except PermissionError:
+        print("Permission denied.")
+        await ctx.send(f'Permission denied - cannot create directory for output')
+    except FileNotFoundError:
+        print("The parent directory does not exist.")
+        await ctx.send(f'Something went wrong :(')
+    except FileExistsError:
+        print("The directory already exists, ignoring.")
+    except OSError as error:
+        print("Directory creation failed:", error)
+        await ctx.send(f'Could not create directory for output - {error}')
+        
+
+    for chapter in chapters[::-1]:
+        filename = f'exports/{ctx.channel}_chapters/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'
+        try:
+            f = open(filename, "w")
+            f.writelines(chapter[::-1])
+            f.close()
+        except PermissionError:
+            print("Permission denied.")
+            await ctx.send(f'Permission denied - cannot create/write/close file, please manually check {os.getcwd()}/{filename}.')
+        except FileNotFoundError:
+            print("Can't find the file.")
+        except OSError as error:
+            print("File creation failed:", error)
+            await ctx.send(f'File creation failed - {error}')
+        except FileExistsError:
+            print("The specified file already exists.")
+    
 
 client.run(token)
 
