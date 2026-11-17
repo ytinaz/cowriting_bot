@@ -1,7 +1,17 @@
-found most recent !start that is valid **general : new chapter**. Beginning export...
-!finish
-part 2
-part 1
-another message b
-another message a
-and once upon a time blah blah
+ch1
+
+blah blah ginger
+blah
+
+newline
+message
+message lkgfjdl;kgj
+dlskjga
+flfdsk
+blah blah
+info 
+*blah*
+testing
+line by line
+
+and white space
