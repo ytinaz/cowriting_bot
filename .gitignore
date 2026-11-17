@@ -1,2 +1,5 @@
 #don't upload your .env
 .env
+
+exports/*
+.DS_Store

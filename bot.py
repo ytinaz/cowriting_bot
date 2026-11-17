@@ -4,6 +4,9 @@ import re
 import random
 from dotenv import load_dotenv
 from discord.ext import commands
+from docx import Document
+from datetime import datetime
+from pathlib import Path
 
 load_dotenv()
 
@@ -19,37 +22,76 @@ async def on_ready():
 
 @client.command()
 async def start(ctx):
-    #print(f"message is {ctx.message.content}")
-    message_text = ctx.message.content
-    pattern = "^!start \"{1}[^\"]*\"{1}"
-    if re.search(pattern, message_text):  #verify command is correct using regex.
-        chapter_name = message_text.split("\"")[1]
-        #print(f"start of {ctx.channel} and chapter is {chapter_name}")
-        await ctx.send(f'Start of **{ctx.channel}: {chapter_name}** acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*')
-    else:
-        await ctx.send(f'Usage: !start "chapter name". Please try again.') 
+    await ctx.send(f'Start of chapter acknowledged. \n*Please note this command will not work while the bot is offline but functionality is still maintained.*') 
     
+
 @client.command()
-async def finish(ctx):
+async def helpme(ctx):
+    await ctx.send(f'To use me, please do the following: \nMark your chapter beginnings with \'!start\' so that I know where to start and end chapters. \nTo export the latest chapter, use !export_last.')
+
+
+@client.command()
+async def export_last(ctx):
+    success = False
     async for message in ctx.channel.history():
-        print(f"{message.author}: {message.content}")
         message_text = message.content
         if message_text.startswith('!start'): #look for the most recent "!start command"
-            #print(f'found the start, exiting loop on {message_text}') 
-            pattern = "^!start \"{1}[^\"]*\"{1}" #make sure this one is sane/entered correctly
-            if re.search(pattern, message_text):
-                chapter_name = message_text.split("\"")[1]
-                channel_name = ctx.channel
-                await ctx.send(f'found most recent !start that is valid {channel_name} : {chapter_name}')
-                #TODO have chapter name and do stuff w it now..
-                # pull out to a file
-                # parse for formatting
-                # upload to gdrive?
-            else:
-                message_url = discord.MessageReference(message_id=message.id, channel_id=ctx.channel.id).jump_url
-                await ctx.send(f'Most recent !start is invalid. Please check the most likely chapter start {message_url} and rectify before running again.')
-            break
+            start_message_url = discord.MessageReference(message_id=message.id, channel_id=ctx.channel.id).jump_url
+            start_message_id = message.id
+            await ctx.send(f'Found most recent !start at {start_message_url} with id {start_message_id}. Beginning export...')
 
+            chapter_contents = []
+            async for message in ctx.channel.history(): 
+                message_text = message.content
+                if message.id == start_message_id:
+                    start_removed = message_text.replace("!start", "")
+                    start_removed = start_removed.lstrip()
+                    chapter_contents.append(start_removed + '\n')
+                    break
+                
+                if not message.author.bot: #ignore bot messages.
+                    chapter_contents.append(message_text + '\n')
+                
+            chapter_contents = chapter_contents[1::] #remove !exportlast message
+
+            try:
+                os.mkdir("exports")
+            except PermissionError:
+                 print("Permission denied.")
+                 await ctx.send(f'Permission denied - cannot create directory for output')
+            except FileNotFoundError:
+                print("The parent directory does not exist.")
+                await ctx.send(f'Something went wrong :(')
+            except FileExistsError:
+                print("The directory already exists, ignoring.")
+            except OSError as error:
+                print("Directory creation failed:", error)
+                await ctx.send(f'Could not create directory for output - {error}')
+
+            filename = f'exports/{datetime.now().date()}_{datetime.now().time()}_{ctx.channel}.txt'
+
+            try:
+                f = open(filename, "w")
+                f.writelines(chapter_contents[::-1])
+                f.close()
+            except PermissionError:
+                 print("Permission denied.")
+                 await ctx.send(f'Permission denied - cannot create/write/close file, please manually check {os.getcwd()}/{filename}.')
+            except FileNotFoundError:
+                print("Can't find the file.")
+            except OSError as error:
+                print("File creation failed:", error)
+                await ctx.send(f'File creation failed - {error}')
+            except FileExistsError:
+                print("The specified file already exists.")
+
+            await ctx.send(f'Exported to {os.getcwd()}/{filename}. Please double check everything is correct.')
+            success = True
+            break
+    if not success:
+        await ctx.send(f'Failed to find most recent !start in channel. Please ensure your chapters are marked correctly.')
+
+#TODO: export ALL using !start as breakpoints/delineate
 
 client.run(token)
 
