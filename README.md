@@ -1,19 +1,16 @@
-Should probably make a proper docker container but im lazy lol
+# Cowriting Exporter Discord Bot
+A simple Discord bot with commands to allow exporting of work which has been cowritten in Discord. 
+Made for personal use and thus not optimised.
 
-dependencies:
-pip install discord.py
+## Dependencies:
+``` pip install discord.py
 pip install python-dotenv
- // maybe later pip install python-docx 
+```
 
+## How to Use:
+Use `!start` to mark the beginning of every chapter.
+`!export_last` exports the most recently written chapter in the channel, using the last `!start` as its stopping point.
+`!export_all` exports all chapters in the channel, breaking chapters apart on occurrences of `!start`.
 
- TODO: handle !start "chapter name" and then extra text here - figure out how to consistently get the extra text if present + add to file.
- TODO: handle file conversion/parsing of formatting in MD
- TODO: handle upload, file cleanup (both reverse and forwards)
- TODO: make a dockerfile i guess lol
-
-will make this neater. probably.
-
-Currently non functional.
-!start "chapter name" - marks the start of the most recent chapter.
-!finish - pulls all messages from current message to most recent !start in the current channel. Name is based on channel + "chapter name". Parses text formatting briefly, removes usernames, and uploads to gdocs(?)
-
+Files are named by date, time, and channel, and are exported to the current working directory of the bot under a new folder called 'exports'. 
+Bulk exports using `!export_all` will make additional folders.
