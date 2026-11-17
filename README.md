@@ -20,3 +20,6 @@ Use `!start` to mark the beginning of every chapter.
 Files are named by date, time, and channel, and are exported to the current working directory of the bot under a new folder called 'exports'. 
 
 Bulk exports using `!export_all` will make additional folders.
+
+### Further Work:
+At the moment this exports in plaintext with the markup syntax still present. At a later time I may consider adding functionality to convert to docx/similar format with formatting + automated uploads to collaborative editing sites.
