@@ -22,4 +22,4 @@ Files are named by date, time, and channel, and are exported to the current work
 Bulk exports using `!export_all` will make additional folders.
 
 ### Further Work:
-At the moment this exports in plaintext with the markup syntax still present. At a later time I may consider adding functionality to convert to docx/similar format with formatting + automated uploads to collaborative editing sites.
+At the moment this exports in plaintext with the markup syntax still present as this works fine for my purposes. At a later time I may consider adding functionality to convert to docx/similar format with formatting + automated uploads to collaborative editing sites.
